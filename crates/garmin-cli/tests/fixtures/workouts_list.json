@@ -1,0 +1,30 @@
+[
+  {
+    "workoutId": 987654321,
+    "workoutUuid": "a1b2c3d4-e5f6-4789-a012-3456789abcde",
+    "ownerId": 11223344,
+    "workoutName": "Tempo",
+    "sportType": {
+      "sportTypeId": 1,
+      "sportTypeKey": "running"
+    },
+    "estimatedDurationInSecs": 2400.0,
+    "estimatedDistanceInMeters": 8000.0,
+    "createdDate": "2026-09-20T08:15:00.0",
+    "updatedDate": "2026-09-20T08:15:00.0"
+  },
+  {
+    "workoutId": 987654322,
+    "workoutUuid": "b2c3d4e5-f6a7-4890-b123-456789abcdef",
+    "ownerId": 11223344,
+    "workoutName": "10' Z2 / 3x(4' Z4, 3' Z3)",
+    "sportType": {
+      "sportTypeId": 1,
+      "sportTypeKey": "running"
+    },
+    "estimatedDurationInSecs": 1620.0,
+    "estimatedDistanceInMeters": null,
+    "createdDate": "2026-09-25T07:00:00.0",
+    "updatedDate": "2026-09-26T07:00:00.0"
+  }
+]

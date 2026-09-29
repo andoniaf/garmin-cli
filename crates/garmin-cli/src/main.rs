@@ -663,4 +663,56 @@ mod tests {
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--storage", "/tmp"]).is_ok());
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--db", "/tmp"]).is_ok());
     }
+
+    #[test]
+    fn workouts_create_accepts_name_and_steps() {
+        assert!(Cli::try_parse_from([
+            "garmin",
+            "workouts",
+            "create",
+            "--name",
+            "Tempo",
+            "--steps",
+            "wu 10m @z2; cd 10m @z1",
+        ])
+        .is_ok());
+    }
+
+    #[test]
+    fn workouts_create_rejects_steps_and_file_together() {
+        assert!(Cli::try_parse_from([
+            "garmin",
+            "workouts",
+            "create",
+            "--name",
+            "Tempo",
+            "--steps",
+            "wu 10m",
+            "--file",
+            "workout.json",
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn workouts_create_rejects_neither_steps_nor_file() {
+        assert!(Cli::try_parse_from(["garmin", "workouts", "create", "--name", "Tempo"]).is_err());
+    }
+
+    #[test]
+    fn workouts_create_file_without_name_is_ok() {
+        assert!(
+            Cli::try_parse_from(["garmin", "workouts", "create", "--file", "workout.json",])
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn workouts_schedule_and_delete_parse() {
+        assert!(
+            Cli::try_parse_from(["garmin", "workouts", "schedule", "123", "2026-10-02"]).is_ok()
+        );
+        assert!(Cli::try_parse_from(["garmin", "workouts", "delete", "123"]).is_ok());
+        assert!(Cli::try_parse_from(["garmin", "workouts", "delete", "123", "--yes"]).is_ok());
+    }
 }

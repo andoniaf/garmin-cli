@@ -1520,3 +1520,184 @@ mod activity_note_tests {
         assert!(result.is_null());
     }
 }
+
+mod workout_tests {
+    use super::*;
+    use garmin_cli::cli::commands::workouts::{create_workout, schedule_workout};
+    use garmin_cli::models::WorkoutSummary;
+    use garmin_cli::workout::{builder, notation};
+    use wiremock::matchers::body_json;
+
+    #[tokio::test]
+    async fn test_list_workouts_fixture_deserializes() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workouts_list.json");
+
+        Mock::given(method("GET"))
+            .and(path("/workout-service/workouts"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let workouts: Vec<WorkoutSummary> = client
+            .get_json(
+                &token,
+                "/workout-service/workouts?start=0&limit=50&myWorkoutsOnly=true",
+            )
+            .await
+            .expect("Failed to list workouts");
+
+        assert_eq!(workouts.len(), 2);
+        assert_eq!(workouts[0].workout_id, Some(987654321));
+        assert_eq!(workouts[0].display_name(), "Tempo");
+        assert_eq!(workouts[0].sport_key(), "running");
+        assert_eq!(workouts[0].distance_km(), Some(8.0));
+        assert_eq!(workouts[1].display_name(), "10' Z2 / 3x(4' Z4, 3' Z3)");
+    }
+
+    #[tokio::test]
+    async fn test_get_workout_fixture() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_detail.json");
+
+        Mock::given(method("GET"))
+            .and(path("/workout-service/workout/987654321"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let value: serde_json::Value = client
+            .get_json(&token, "/workout-service/workout/987654321")
+            .await
+            .expect("Failed to get workout");
+
+        assert_eq!(value["workoutId"], 987654321);
+        let steps = &value["workoutSegments"][0]["workoutSteps"];
+        assert_eq!(steps.as_array().unwrap().len(), 3);
+        assert_eq!(steps[1]["targetType"]["workoutTargetTypeKey"], "pace.zone");
+    }
+
+    #[tokio::test]
+    async fn test_workout_types_fixture() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_types.json");
+
+        Mock::given(method("GET"))
+            .and(path("/workout-service/workout/types"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let value: serde_json::Value = client
+            .get_json(&token, "/workout-service/workout/types")
+            .await
+            .expect("Failed to get workout types");
+
+        assert_eq!(value["stepTypes"].as_array().unwrap().len(), 7);
+        assert_eq!(
+            value["targetTypes"][3]["workoutTargetTypeKey"],
+            "heart.rate.zone"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_create_workout_sends_exact_body_and_returns_id() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_created.json");
+
+        let items = notation::parse("wu 10m").unwrap();
+        let workout = builder::build_workout("Tempo", None, &items);
+        let expected_body = serde_json::to_value(&workout).unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/workout"))
+            .and(body_json(&expected_body))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = create_workout(&client, &token, &expected_body)
+            .await
+            .expect("create should succeed");
+
+        assert_eq!(result["workoutId"], 987654399);
+        assert_eq!(result["workoutName"], "Tempo");
+    }
+
+    #[tokio::test]
+    async fn test_schedule_workout_with_json_response_fixture() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_schedule.json");
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/987654399"))
+            .and(body_json(serde_json::json!({"date": "2026-10-02"})))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = schedule_workout(&client, &token, 987654399, "2026-10-02")
+            .await
+            .expect("schedule should succeed")
+            .expect("expected a response body");
+
+        assert_eq!(result["workoutScheduleId"], 55667788);
+    }
+
+    #[tokio::test]
+    async fn test_schedule_workout_with_empty_response() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/987654399"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = schedule_workout(&client, &token, 987654399, "2026-10-02")
+            .await
+            .expect("schedule should succeed");
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_download_workout_fit_bytes() {
+        let mock_server = MockServer::start().await;
+        let fit_bytes: &[u8] = b"\x0e\x10FITWORKOUTBYTES";
+
+        Mock::given(method("GET"))
+            .and(path("/workout-service/workout/FIT/987654321"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(fit_bytes))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let bytes = client
+            .download(&token, "/workout-service/workout/FIT/987654321")
+            .await
+            .expect("download should succeed");
+
+        assert_eq!(bytes.as_ref(), fit_bytes);
+    }
+}

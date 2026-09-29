@@ -1,0 +1,48 @@
+{
+  "workoutId": 987654399,
+  "workoutUuid": "c3d4e5f6-a7b8-4901-c234-56789abcdef0",
+  "ownerId": 11223344,
+  "workoutName": "Tempo",
+  "description": null,
+  "sportType": {
+    "sportTypeId": 1,
+    "sportTypeKey": "running"
+  },
+  "createdDate": "2026-09-29T09:00:00.0",
+  "updatedDate": "2026-09-29T09:00:00.0",
+  "workoutSegments": [
+    {
+      "segmentOrder": 1,
+      "sportType": {
+        "sportTypeId": 1,
+        "sportTypeKey": "running"
+      },
+      "workoutSteps": [
+        {
+          "type": "ExecutableStepDTO",
+          "stepId": 2221,
+          "stepOrder": 1,
+          "childStepId": null,
+          "stepType": {
+            "stepTypeId": 1,
+            "stepTypeKey": "warmup"
+          },
+          "description": null,
+          "endCondition": {
+            "conditionTypeId": 2,
+            "conditionTypeKey": "time"
+          },
+          "endConditionValue": 600.0,
+          "preferredEndConditionUnit": null,
+          "targetType": {
+            "workoutTargetTypeId": 1,
+            "workoutTargetTypeKey": "no.target"
+          },
+          "targetValueOne": null,
+          "targetValueTwo": null,
+          "zoneNumber": null
+        }
+      ]
+    }
+  ]
+}

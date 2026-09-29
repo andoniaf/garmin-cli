@@ -1,0 +1,103 @@
+{
+  "workoutId": 987654321,
+  "workoutUuid": "a1b2c3d4-e5f6-4789-a012-3456789abcde",
+  "ownerId": 11223344,
+  "workoutName": "Tempo",
+  "description": null,
+  "sportType": {
+    "sportTypeId": 1,
+    "sportTypeKey": "running"
+  },
+  "subSportType": null,
+  "createdDate": "2026-09-20T08:15:00.0",
+  "updatedDate": "2026-09-20T08:15:00.0",
+  "workoutSegments": [
+    {
+      "segmentOrder": 1,
+      "sportType": {
+        "sportTypeId": 1,
+        "sportTypeKey": "running"
+      },
+      "workoutSteps": [
+        {
+          "type": "ExecutableStepDTO",
+          "stepId": 1111,
+          "stepOrder": 1,
+          "childStepId": null,
+          "stepType": {
+            "stepTypeId": 1,
+            "stepTypeKey": "warmup"
+          },
+          "description": null,
+          "endCondition": {
+            "conditionTypeId": 3,
+            "conditionTypeKey": "distance"
+          },
+          "endConditionValue": 2000.0,
+          "preferredEndConditionUnit": {
+            "unitKey": "kilometer"
+          },
+          "targetType": {
+            "workoutTargetTypeId": 1,
+            "workoutTargetTypeKey": "no.target"
+          },
+          "targetValueOne": null,
+          "targetValueTwo": null,
+          "zoneNumber": null
+        },
+        {
+          "type": "ExecutableStepDTO",
+          "stepId": 1112,
+          "stepOrder": 2,
+          "childStepId": null,
+          "stepType": {
+            "stepTypeId": 3,
+            "stepTypeKey": "interval"
+          },
+          "description": null,
+          "endCondition": {
+            "conditionTypeId": 3,
+            "conditionTypeKey": "distance"
+          },
+          "endConditionValue": 5000.0,
+          "preferredEndConditionUnit": {
+            "unitKey": "kilometer"
+          },
+          "targetType": {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone"
+          },
+          "targetValueOne": 3.7037037037037,
+          "targetValueTwo": 3.5714285714286,
+          "zoneNumber": null
+        },
+        {
+          "type": "ExecutableStepDTO",
+          "stepId": 1113,
+          "stepOrder": 3,
+          "childStepId": null,
+          "stepType": {
+            "stepTypeId": 2,
+            "stepTypeKey": "cooldown"
+          },
+          "description": null,
+          "endCondition": {
+            "conditionTypeId": 3,
+            "conditionTypeKey": "distance"
+          },
+          "endConditionValue": 1000.0,
+          "preferredEndConditionUnit": {
+            "unitKey": "kilometer"
+          },
+          "targetType": {
+            "workoutTargetTypeId": 1,
+            "workoutTargetTypeKey": "no.target"
+          },
+          "targetValueOne": null,
+          "targetValueTwo": null,
+          "zoneNumber": null
+        }
+      ]
+    }
+  ]
+}

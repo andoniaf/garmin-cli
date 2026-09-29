@@ -1,0 +1,34 @@
+{
+  "sportTypes": [
+    { "sportTypeId": 1, "sportTypeKey": "running", "displayOrder": 1 },
+    { "sportTypeId": 2, "sportTypeKey": "cycling", "displayOrder": 2 },
+    { "sportTypeId": 5, "sportTypeKey": "strength_training", "displayOrder": 5 }
+  ],
+  "stepTypes": [
+    { "stepTypeId": 1, "stepTypeKey": "warmup", "displayOrder": 1 },
+    { "stepTypeId": 2, "stepTypeKey": "cooldown", "displayOrder": 2 },
+    { "stepTypeId": 3, "stepTypeKey": "interval", "displayOrder": 3 },
+    { "stepTypeId": 4, "stepTypeKey": "recovery", "displayOrder": 4 },
+    { "stepTypeId": 5, "stepTypeKey": "rest", "displayOrder": 5 },
+    { "stepTypeId": 6, "stepTypeKey": "repeat", "displayOrder": 6 },
+    { "stepTypeId": 7, "stepTypeKey": "other", "displayOrder": 7 }
+  ],
+  "conditionTypes": [
+    { "conditionTypeId": 1, "conditionTypeKey": "lap.button", "displayOrder": 1, "displayable": true },
+    { "conditionTypeId": 2, "conditionTypeKey": "time", "displayOrder": 2, "displayable": true },
+    { "conditionTypeId": 3, "conditionTypeKey": "distance", "displayOrder": 3, "displayable": true },
+    { "conditionTypeId": 4, "conditionTypeKey": "calories", "displayOrder": 4, "displayable": true },
+    { "conditionTypeId": 7, "conditionTypeKey": "iterations", "displayOrder": 7, "displayable": false },
+    { "conditionTypeId": 10, "conditionTypeKey": "reps", "displayOrder": 10, "displayable": true }
+  ],
+  "targetTypes": [
+    { "workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target", "displayOrder": 1 },
+    { "workoutTargetTypeId": 2, "workoutTargetTypeKey": "power.zone", "displayOrder": 2 },
+    { "workoutTargetTypeId": 3, "workoutTargetTypeKey": "cadence.zone", "displayOrder": 3 },
+    { "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4 },
+    { "workoutTargetTypeId": 5, "workoutTargetTypeKey": "speed.zone", "displayOrder": 5 },
+    { "workoutTargetTypeId": 6, "workoutTargetTypeKey": "pace.zone", "displayOrder": 6 }
+  ],
+  "strokeTypes": [],
+  "equipmentTypes": []
+}
