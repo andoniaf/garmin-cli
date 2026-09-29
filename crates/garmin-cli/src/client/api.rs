@@ -278,6 +278,74 @@ impl GarminClient {
         })
     }
 
+    /// Make an authenticated POST request with a JSON body, tolerating an
+    /// empty/204 response (endpoints with undocumented response shapes).
+    pub async fn post_json_optional(
+        &self,
+        token: &OAuth2Token,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Option<serde_json::Value>> {
+        let url = self.build_url(path);
+        let headers = self.build_headers(token);
+
+        let response = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .json(body)
+            .send()
+            .await
+            .map_err(GarminError::Http)?;
+
+        let response = self.handle_response_status(response).await?;
+        let status = response.status();
+        let text = response.text().await.map_err(GarminError::Http)?;
+        if let Some(logger) = &self.logger {
+            logger.log_response("POST", path, status, &text);
+        }
+
+        if status == StatusCode::NO_CONTENT || text.trim().is_empty() {
+            return Ok(None);
+        }
+
+        serde_json::from_str(&text).map(Some).map_err(|e| {
+            if let Some(logger) = &self.logger {
+                logger.log(format!(
+                    "Malformed JSON response from {} (status {}): {}; body preview: {}",
+                    path,
+                    status,
+                    e,
+                    response_preview(&text)
+                ));
+            }
+            GarminError::invalid_response(format!(
+                "Failed to parse JSON response from {} (status {}): {}; body preview: {}",
+                path,
+                status,
+                e,
+                response_preview(&text)
+            ))
+        })
+    }
+
+    /// Make an authenticated DELETE request. The response body is ignored.
+    pub async fn delete(&self, token: &OAuth2Token, path: &str) -> Result<()> {
+        let url = self.build_url(path);
+        let headers = self.build_headers(token);
+
+        let response = self
+            .client
+            .delete(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(GarminError::Http)?;
+
+        self.handle_response_status(response).await?;
+        Ok(())
+    }
+
     /// Make an authenticated GET request and return raw bytes (for file downloads)
     pub async fn download(&self, token: &OAuth2Token, path: &str) -> Result<Bytes> {
         let response = self.get(token, path).await?;
@@ -432,6 +500,121 @@ mod tests {
         let message = error.to_string();
         assert!(message.contains("/bad-json"));
         assert!(message.contains("<html>not json</html>"));
+    }
+
+    #[tokio::test]
+    async fn test_delete_204() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .expect("delete should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_delete_200() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .expect("delete should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_delete_404() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        let err = client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, GarminError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_post_json_optional_empty_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/123"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(""))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        let result = client
+            .post_json_optional(
+                &test_token(),
+                "/workout-service/schedule/123",
+                &serde_json::json!({"date": "2026-10-02"}),
+            )
+            .await
+            .expect("post should succeed");
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_post_json_optional_204() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/123"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        let result = client
+            .post_json_optional(
+                &test_token(),
+                "/workout-service/schedule/123",
+                &serde_json::json!({"date": "2026-10-02"}),
+            )
+            .await
+            .expect("post should succeed");
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_post_json_optional_json_body() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/123"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(r#"{"workoutScheduleId":999}"#),
+            )
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        let result = client
+            .post_json_optional(
+                &test_token(),
+                "/workout-service/schedule/123",
+                &serde_json::json!({"date": "2026-10-02"}),
+            )
+            .await
+            .expect("post should succeed")
+            .expect("expected a response body");
+        assert_eq!(result["workoutScheduleId"], 999);
     }
 
     fn test_token() -> OAuth2Token {
