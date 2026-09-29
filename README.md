@@ -142,6 +142,69 @@ garmin activities download 21247810009 --type gpx --output activity.gpx
 garmin activities upload activity.fit
 ```
 
+## Workout Commands
+
+Create running workouts from a compact step notation and push them to Garmin Connect so they sync to your watch.
+
+```bash
+# List / inspect
+garmin workouts list
+garmin workouts get 987654321
+garmin workouts types
+
+# Create from step notation
+garmin workouts create --name "10' Z2 / 3x(4' Z4, 3' Z3)" \
+  --steps "wu 10m @z2; 3x(int 4m @z4, rec 3m @z3); cd 10m @z1"
+
+# Create and schedule to a date
+garmin workouts create --name Tempo \
+  --steps "wu 2km; int 5km @4:30-4:40/km; cd 1km" \
+  --schedule 2026-10-02
+
+# Print the Garmin JSON payload without any network call
+garmin workouts create --name Tempo --steps "wu 2km; cd 1km" --dry-run
+
+# Create from a raw WorkoutCreate JSON file (escape hatch)
+garmin workouts create --file workout.json
+
+# Schedule, delete, download
+garmin workouts schedule 987654321 2026-10-02
+garmin workouts delete 987654321
+garmin workouts download 987654321 --output tempo.fit
+```
+
+### Step notation cheat sheet
+
+```
+workout  := item (';' | ',' separated)*
+item     := repeat | step
+repeat   := COUNT ('x'|'X'|'×') '(' step, ... ')'      -- 1-99 iterations, no nesting
+step     := kind end [target] [note]
+
+kind     := wu|warmup, cd|cooldown, int|interval, rec|recovery, rest, other
+
+end      := 'lap'
+          | duration: 90s, 10min, 10m, 1h30m, 4:00 (m:ss), 1:05:00 (h:mm:ss)  -- 1s to 6h
+          | distance: 400mt, 0.4km, 1.5mi                                     -- up to 100km
+
+target   := '@z1'..'@z5'                    -- heart-rate zone
+          | '@4:30/km'                      -- single pace, ±5s/km band
+          | '@4:30-4:40/km' or '@7:00-7:20/mi'  -- pace range, either order  -- 2:00-15:00 pace
+
+note     := '[free text]'                   -- sets the step description
+```
+
+Guardrail: `400m` is rejected (`400m means 400 minutes; for meters write 400mt or 0.4km`) — bare `m` after a number ≥100 is almost always a typo for meters. Parse errors point at the exact column:
+
+```
+$ garmin workouts create --name Tempo --steps "wu 10m @z2; int @z4"
+Error: Invalid parameter: invalid --steps at column 17: expected duration, distance or 'lap'
+  wu 10m @z2; int @z4
+                  ^
+```
+
+MVP scope is running only, with `create`/`schedule`/`delete` (no `update`, `unschedule`, or `clone`).
+
 ## Device Commands
 
 ```bash
