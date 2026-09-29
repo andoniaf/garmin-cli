@@ -6,6 +6,7 @@ pub mod error;
 pub mod models;
 pub mod storage;
 pub mod sync;
+pub mod workout;
 
 pub use error::{GarminError, Result};
 pub use storage::{ParquetStore, Storage, SyncDb};
