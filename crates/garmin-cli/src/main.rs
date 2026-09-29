@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 use garmin_cli::cli::commands;
 
@@ -44,6 +46,11 @@ enum Commands {
     Sync {
         #[command(subcommand)]
         command: SyncCommands,
+    },
+    /// Workout commands
+    Workouts {
+        #[command(subcommand)]
+        command: WorkoutCommands,
     },
 }
 
@@ -377,6 +384,70 @@ enum SyncCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum WorkoutCommands {
+    /// List workouts
+    List {
+        /// Number of workouts to show
+        #[arg(short, long, default_value = "50")]
+        limit: u32,
+        /// Starting offset
+        #[arg(short, long, default_value = "0")]
+        start: u32,
+    },
+    /// Get workout details
+    Get {
+        /// Workout ID
+        id: u64,
+    },
+    /// List workout type enumerations (step/condition/target/sport types)
+    Types,
+    /// Create a workout from compact step notation
+    Create {
+        /// Workout name (1-32 characters)
+        #[arg(short, long, required_unless_present = "file")]
+        name: Option<String>,
+        /// Compact step notation, e.g. "wu 10m @z2; 3x(int 4m @z4, rec 3m @z3); cd 10m @z1"
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        steps: Option<String>,
+        /// Raw WorkoutCreate JSON file (escape hatch; --name/--description override its fields)
+        #[arg(long, value_name = "JSON")]
+        file: Option<PathBuf>,
+        /// Workout description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Schedule the created workout to this date
+        #[arg(long, value_name = "YYYY-MM-DD")]
+        schedule: Option<String>,
+        /// Print the Garmin JSON payload and exit without making any network call
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Schedule a workout to a calendar date
+    Schedule {
+        /// Workout ID
+        id: u64,
+        /// Date (YYYY-MM-DD)
+        date: String,
+    },
+    /// Delete a workout
+    Delete {
+        /// Workout ID
+        id: u64,
+        /// Skip the confirmation prompt
+        #[arg(short, long)]
+        yes: bool,
+    },
+    /// Download workout as a FIT file
+    Download {
+        /// Workout ID
+        id: u64,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() -> garmin_cli::Result<()> {
     let cli = Cli::parse();
@@ -522,6 +593,41 @@ async fn main() -> garmin_cli::Result<()> {
             SyncCommands::Status { storage } => commands::sync_status(cli.profile, storage).await,
             SyncCommands::Reset { storage } => commands::sync_reset(storage).await,
             SyncCommands::Clear { storage } => commands::sync_clear(storage).await,
+        },
+        Commands::Workouts { command } => match command {
+            WorkoutCommands::List { limit, start } => {
+                commands::list_workouts(limit, start, cli.profile).await
+            }
+            WorkoutCommands::Get { id } => commands::get_workout(id, cli.profile).await,
+            WorkoutCommands::Types => commands::workout_types(cli.profile).await,
+            WorkoutCommands::Create {
+                name,
+                steps,
+                file,
+                description,
+                schedule,
+                dry_run,
+            } => {
+                commands::create_workout(
+                    name,
+                    steps,
+                    file,
+                    description,
+                    schedule,
+                    dry_run,
+                    cli.profile,
+                )
+                .await
+            }
+            WorkoutCommands::Schedule { id, date } => {
+                commands::schedule_workout(id, date, cli.profile).await
+            }
+            WorkoutCommands::Delete { id, yes } => {
+                commands::delete_workout(id, yes, cli.profile).await
+            }
+            WorkoutCommands::Download { id, output } => {
+                commands::download_workout(id, output, cli.profile).await
+            }
         },
     };
 
