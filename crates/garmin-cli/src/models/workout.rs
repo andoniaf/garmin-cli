@@ -26,8 +26,10 @@ pub struct WorkoutSummary {
     #[serde(default)]
     pub estimated_distance_in_meters: Option<f64>,
 
-    #[serde(default)]
-    pub updated_date: Option<String>,
+    /// `updateDate`, not `updatedDate` as the OpenAPI spec names it — verified
+    /// against a live Garmin Connect account (2026-10-02).
+    #[serde(default, rename = "updateDate")]
+    pub update_date: Option<String>,
 
     /// Catch-all for fields not modeled above.
     #[serde(flatten)]
@@ -70,9 +72,9 @@ impl WorkoutSummary {
         self.estimated_distance_in_meters.map(|d| d / 1000.0)
     }
 
-    /// Date portion of `updatedDate`.
+    /// Date portion of `updateDate`.
     pub fn updated_date_short(&self) -> String {
-        self.updated_date
+        self.update_date
             .as_ref()
             .map(|s| s.split(['T', ' ']).next().unwrap_or(s).to_string())
             .unwrap_or_else(|| "-".to_string())

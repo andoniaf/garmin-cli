@@ -2,9 +2,13 @@
 //!
 //! Pure, no I/O. `stepOrder` assignment uses a single global counter across
 //! the whole workout (including steps nested in repeat groups), rather than
-//! per-parent numbering — see the risk note in the implementation plan. This
-//! is isolated to `next_order` so it's easy to flip if a live smoke test
-//! shows Garmin expects per-parent order instead.
+//! per-parent numbering. Confirmed against a workout created in the Garmin
+//! Connect UI during a live smoke test (2026-10-02).
+//!
+//! `childStepId` is a separate 1-based counter over repeat groups only: each
+//! `RepeatGroupDTO` gets its own index as `childStepId` (not `null`), and
+//! every `ExecutableStepDTO` nested inside it gets that same index (not a
+//! fixed `1`) — also confirmed live. Top-level steps keep `childStepId: null`.
 
 use crate::models::workout::{
     ConditionType, DistanceUnit, ExecutableStep, RepeatGroup, SportType, StepType, TargetType,
@@ -16,9 +20,10 @@ use crate::workout::notation::{DistUnit, End, Item, Step, StepKind, Target};
 /// Build a single-segment running `WorkoutCreate` from parsed items.
 pub fn build_workout(name: &str, description: Option<&str>, items: &[Item]) -> WorkoutCreate {
     let mut order = 0i64;
+    let mut repeat_index = 0i64;
     let workout_steps = items
         .iter()
-        .map(|item| build_item(item, &mut order))
+        .map(|item| build_item(item, &mut order, &mut repeat_index))
         .collect();
 
     WorkoutCreate {
@@ -38,21 +43,24 @@ fn next_order(counter: &mut i64) -> i64 {
     *counter
 }
 
-fn build_item(item: &Item, counter: &mut i64) -> WorkoutStep {
+fn build_item(item: &Item, counter: &mut i64, repeat_counter: &mut i64) -> WorkoutStep {
     match item {
         Item::Step(step) => WorkoutStep::Executable(build_executable_step(step, counter, None)),
         Item::Repeat { count, steps, .. } => {
             let step_order = next_order(counter);
+            let repeat_index = next_order(repeat_counter);
             let workout_steps = steps
                 .iter()
-                .map(|s| WorkoutStep::Executable(build_executable_step(s, counter, Some(1))))
+                .map(|s| {
+                    WorkoutStep::Executable(build_executable_step(s, counter, Some(repeat_index)))
+                })
                 .collect();
             let (repeat_id, repeat_key) = ids::STEP_REPEAT;
             let (iterations_id, iterations_key) = ids::CONDITION_ITERATIONS;
             WorkoutStep::Repeat(RepeatGroup {
                 step_id: None,
                 step_order,
-                child_step_id: None,
+                child_step_id: Some(repeat_index),
                 step_type: StepType {
                     step_type_id: repeat_id,
                     step_type_key: repeat_key.to_string(),
@@ -231,7 +239,7 @@ mod tests {
                             "type": "RepeatGroupDTO",
                             "stepId": null,
                             "stepOrder": 2,
-                            "childStepId": null,
+                            "childStepId": 1,
                             "stepType": {"stepTypeId": 6, "stepTypeKey": "repeat"},
                             "numberOfIterations": 3,
                             "smartRepeat": false,
@@ -361,6 +369,22 @@ mod tests {
         assert_eq!(steps[0]["workoutSteps"][0]["stepOrder"], 2);
         assert_eq!(steps[1]["stepOrder"], 3);
         assert_eq!(steps[1]["workoutSteps"][0]["stepOrder"], 4);
+    }
+
+    /// childStepId is a separate 1-based counter over repeat groups only: the
+    /// RepeatGroupDTO itself gets its index, and every nested step gets that
+    /// same index — confirmed against a live Garmin Connect workout.
+    #[test]
+    fn two_repeat_groups_get_distinct_child_step_ids() {
+        let items = parse("2x(int 1m); 2x(int 1m)").unwrap();
+        let workout = build_workout("Two Blocks", None, &items);
+        let value = serde_json::to_value(&workout).unwrap();
+        let steps = &value["workoutSegments"][0]["workoutSteps"];
+
+        assert_eq!(steps[0]["childStepId"], 1);
+        assert_eq!(steps[0]["workoutSteps"][0]["childStepId"], 1);
+        assert_eq!(steps[1]["childStepId"], 2);
+        assert_eq!(steps[1]["workoutSteps"][0]["childStepId"], 2);
     }
 
     #[test]

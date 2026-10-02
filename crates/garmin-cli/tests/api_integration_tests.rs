@@ -1551,11 +1551,12 @@ mod workout_tests {
             .expect("Failed to list workouts");
 
         assert_eq!(workouts.len(), 2);
-        assert_eq!(workouts[0].workout_id, Some(987654321));
-        assert_eq!(workouts[0].display_name(), "Tempo");
+        assert_eq!(workouts[0].workout_id, Some(1716988795));
+        assert_eq!(workouts[0].display_name(), "CLI Sample: Z2/3xZ4");
         assert_eq!(workouts[0].sport_key(), "running");
-        assert_eq!(workouts[0].distance_km(), Some(8.0));
-        assert_eq!(workouts[1].display_name(), "10' Z2 / 3x(4' Z4, 3' Z3)");
+        assert_eq!(workouts[0].distance_km(), None);
+        assert_eq!(workouts[0].updated_date_short(), "2026-10-02");
+        assert_eq!(workouts[1].display_name(), "Tempo Run");
     }
 
     #[tokio::test]
@@ -1564,7 +1565,7 @@ mod workout_tests {
         let fixture = include_str!("fixtures/workout_detail.json");
 
         Mock::given(method("GET"))
-            .and(path("/workout-service/workout/987654321"))
+            .and(path("/workout-service/workout/1716988795"))
             .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
             .mount(&mock_server)
             .await;
@@ -1573,14 +1574,22 @@ mod workout_tests {
         let token = test_token();
 
         let value: serde_json::Value = client
-            .get_json(&token, "/workout-service/workout/987654321")
+            .get_json(&token, "/workout-service/workout/1716988795")
             .await
             .expect("Failed to get workout");
 
-        assert_eq!(value["workoutId"], 987654321);
+        assert_eq!(value["workoutId"], 1716988795);
         let steps = &value["workoutSegments"][0]["workoutSteps"];
         assert_eq!(steps.as_array().unwrap().len(), 3);
-        assert_eq!(steps[1]["targetType"]["workoutTargetTypeKey"], "pace.zone");
+        assert_eq!(
+            steps[0]["targetType"]["workoutTargetTypeKey"],
+            "heart.rate.zone"
+        );
+        assert_eq!(steps[0]["zoneNumber"], 2);
+        assert_eq!(steps[1]["type"], "RepeatGroupDTO");
+        assert_eq!(steps[1]["numberOfIterations"], 3);
+        assert_eq!(steps[1]["childStepId"], 1);
+        assert_eq!(steps[1]["workoutSteps"][0]["childStepId"], 1);
     }
 
     #[tokio::test]
@@ -1602,9 +1611,9 @@ mod workout_tests {
             .await
             .expect("Failed to get workout types");
 
-        assert_eq!(value["stepTypes"].as_array().unwrap().len(), 7);
+        assert_eq!(value["workoutStepTypes"].as_array().unwrap().len(), 8);
         assert_eq!(
-            value["targetTypes"][3]["workoutTargetTypeKey"],
+            value["workoutTargetTypes"][3]["workoutTargetTypeKey"],
             "heart.rate.zone"
         );
     }
@@ -1614,8 +1623,8 @@ mod workout_tests {
         let mock_server = MockServer::start().await;
         let fixture = include_str!("fixtures/workout_created.json");
 
-        let items = notation::parse("wu 10m").unwrap();
-        let workout = builder::build_workout("Tempo", None, &items);
+        let items = notation::parse("wu 10m @z2; 3x(int 4m @z4, rec 3m @z3); cd 10m @z1").unwrap();
+        let workout = builder::build_workout("CLI Sample: Z2/3xZ4", None, &items);
         let expected_body = serde_json::to_value(&workout).unwrap();
 
         Mock::given(method("POST"))
@@ -1632,8 +1641,8 @@ mod workout_tests {
             .await
             .expect("create should succeed");
 
-        assert_eq!(result["workoutId"], 987654399);
-        assert_eq!(result["workoutName"], "Tempo");
+        assert_eq!(result["workoutId"], 1716988795);
+        assert_eq!(result["workoutName"], "CLI Sample: Z2/3xZ4");
     }
 
     #[tokio::test]
@@ -1642,8 +1651,8 @@ mod workout_tests {
         let fixture = include_str!("fixtures/workout_schedule.json");
 
         Mock::given(method("POST"))
-            .and(path("/workout-service/schedule/987654399"))
-            .and(body_json(serde_json::json!({"date": "2026-10-02"})))
+            .and(path("/workout-service/schedule/1716988795"))
+            .and(body_json(serde_json::json!({"date": "2026-10-04"})))
             .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
             .mount(&mock_server)
             .await;
@@ -1651,12 +1660,13 @@ mod workout_tests {
         let client = test_client(&mock_server);
         let token = test_token();
 
-        let result = schedule_workout(&client, &token, 987654399, "2026-10-02")
+        let result = schedule_workout(&client, &token, 1716988795, "2026-10-04")
             .await
             .expect("schedule should succeed")
             .expect("expected a response body");
 
-        assert_eq!(result["workoutScheduleId"], 55667788);
+        assert_eq!(result["workoutScheduleId"], 1796139812);
+        assert_eq!(result["calendarDate"], "2026-10-04");
     }
 
     #[tokio::test]
@@ -1664,7 +1674,7 @@ mod workout_tests {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
-            .and(path("/workout-service/schedule/987654399"))
+            .and(path("/workout-service/schedule/1716988795"))
             .respond_with(ResponseTemplate::new(204))
             .mount(&mock_server)
             .await;
@@ -1672,7 +1682,7 @@ mod workout_tests {
         let client = test_client(&mock_server);
         let token = test_token();
 
-        let result = schedule_workout(&client, &token, 987654399, "2026-10-02")
+        let result = schedule_workout(&client, &token, 1716988795, "2026-10-04")
             .await
             .expect("schedule should succeed");
 
@@ -1685,7 +1695,7 @@ mod workout_tests {
         let fit_bytes: &[u8] = b"\x0e\x10FITWORKOUTBYTES";
 
         Mock::given(method("GET"))
-            .and(path("/workout-service/workout/FIT/987654321"))
+            .and(path("/workout-service/workout/FIT/1716988795"))
             .respond_with(ResponseTemplate::new(200).set_body_bytes(fit_bytes))
             .mount(&mock_server)
             .await;
@@ -1694,7 +1704,7 @@ mod workout_tests {
         let token = test_token();
 
         let bytes = client
-            .download(&token, "/workout-service/workout/FIT/987654321")
+            .download(&token, "/workout-service/workout/FIT/1716988795")
             .await
             .expect("download should succeed");
 
