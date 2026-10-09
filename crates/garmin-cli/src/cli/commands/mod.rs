@@ -5,6 +5,7 @@ pub mod health;
 pub mod profile;
 pub mod sync;
 pub mod weight;
+pub mod workouts;
 
 pub use activities::{
     download as download_activity, get as get_activity, list as list_activities,
@@ -23,3 +24,7 @@ pub use health::{
 pub use profile::{settings as show_settings, show as show_profile};
 pub use sync::{clear as sync_clear, reset as sync_reset, run as sync_run, status as sync_status};
 pub use weight::{add as add_weight, latest as latest_weight, list as list_weight};
+pub use workouts::{
+    delete as delete_workout, download as download_workout, get as get_workout,
+    list as list_workouts, types as workout_types,
+};

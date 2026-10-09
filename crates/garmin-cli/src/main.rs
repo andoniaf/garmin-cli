@@ -45,6 +45,11 @@ enum Commands {
         #[command(subcommand)]
         command: SyncCommands,
     },
+    /// Workout commands
+    Workouts {
+        #[command(subcommand)]
+        command: WorkoutCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -377,6 +382,42 @@ enum SyncCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum WorkoutCommands {
+    /// List workouts
+    List {
+        /// Number of workouts to show
+        #[arg(short, long, default_value = "50")]
+        limit: u32,
+        /// Starting offset
+        #[arg(short, long, default_value = "0")]
+        start: u32,
+    },
+    /// Get workout details
+    Get {
+        /// Workout ID
+        id: u64,
+    },
+    /// List workout type enumerations (step/condition/target/sport types)
+    Types,
+    /// Delete a workout
+    Delete {
+        /// Workout ID
+        id: u64,
+        /// Skip the confirmation prompt
+        #[arg(short, long)]
+        yes: bool,
+    },
+    /// Download workout as a FIT file
+    Download {
+        /// Workout ID
+        id: u64,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() -> garmin_cli::Result<()> {
     let cli = Cli::parse();
@@ -523,6 +564,19 @@ async fn main() -> garmin_cli::Result<()> {
             SyncCommands::Reset { storage } => commands::sync_reset(storage).await,
             SyncCommands::Clear { storage } => commands::sync_clear(storage).await,
         },
+        Commands::Workouts { command } => match command {
+            WorkoutCommands::List { limit, start } => {
+                commands::list_workouts(limit, start, cli.profile).await
+            }
+            WorkoutCommands::Get { id } => commands::get_workout(id, cli.profile).await,
+            WorkoutCommands::Types => commands::workout_types(cli.profile).await,
+            WorkoutCommands::Delete { id, yes } => {
+                commands::delete_workout(id, yes, cli.profile).await
+            }
+            WorkoutCommands::Download { id, output } => {
+                commands::download_workout(id, output, cli.profile).await
+            }
+        },
     };
 
     if let Err(e) = result {
@@ -556,5 +610,11 @@ mod tests {
     fn accepts_storage_alias_for_sync() {
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--storage", "/tmp"]).is_ok());
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--db", "/tmp"]).is_ok());
+    }
+
+    #[test]
+    fn workouts_delete_parse() {
+        assert!(Cli::try_parse_from(["garmin", "workouts", "delete", "123"]).is_ok());
+        assert!(Cli::try_parse_from(["garmin", "workouts", "delete", "123", "--yes"]).is_ok());
     }
 }
