@@ -100,13 +100,27 @@ note     := '[free text]'                             -- becomes the step's on-w
 
 These are facts, not caveats to hedge on:
 
-- **No raw-bpm targets.** Only HR *zones* 1-5 (`@z1`-`@z5`) are supported — there's no way to target "keep HR below 145 bpm" directly. If a user gives you a bpm ceiling or similar nuanced guidance, put it in that step's `[note]` (it becomes the step's description, shown on the watch) rather than inventing a zone that isn't what they asked for.
+- **No raw-bpm targets.** Only HR *zones* 1-5 (`@z1`-`@z5`) are supported — there's no way to target "keep HR below 145 bpm" directly. Resolve a stated bpm range/ceiling to a zone number instead (see "Mapping a bpm range to a zone" below); only fall back to a `[note]` if no zone reasonably fits.
+- **Prefer giving every step an explicit target.** This user's stated default: no "sin objetivo" / target-less steps when a zone or pace range can be set instead — including short interval/recovery steps inside a repeat group, which are easy to forget. Treat this as the default for any running workout unless the user says otherwise.
+- **No `workouts update` command.** Fixing a live workout's steps/targets means `delete` + recreate with the corrected `--steps`. If the old workout was scheduled, the schedule entry is tied to its workout id and is lost on delete — re-apply `--schedule YYYY-MM-DD` (or `workouts schedule`) on the new one.
 - **Workout name is capped at 1-32 characters.** Keep it tight; put the full description in `--description` or step notes instead.
 - **Always `--dry-run` first.** It prints the exact Garmin JSON payload with no network call — review it before creating anything live.
 - **`workouts types`** shows the live account's actual step/condition/target/sport type IDs — check it if a create ever behaves unexpectedly.
 - **`workouts delete <id> --yes`** skips the interactive confirmation — needed for non-interactive use; without `--yes` it prompts `[y/N]`.
 - **`workouts create --schedule YYYY-MM-DD`** schedules in the same call; or do it after the fact with `workouts schedule <id> <date>`.
 - **UTF-8 round-trips correctly** — Spanish/accented text in names, descriptions, and step notes comes back unmodified from Garmin.
+
+### Mapping a bpm range to a zone
+
+HR zone boundaries are per-account, user-editable in the Garmin app, and *change* — don't reuse a boundary you fetched earlier in the conversation if the user mentions editing their zones. There's no CLI subcommand for this yet; fetch live boundaries directly:
+
+```bash
+TOKEN=$(python3 -c "import json; print(json.load(open('<profile_dir>/oauth2_token.json'))['access_token'])")
+curl -s "https://connectapi.garmin.com/biometric-service/heartRateZones/" \
+  -H "Authorization: Bearer $TOKEN" -H "User-Agent: GCM-iOS-5.7.2.1" | python3 -m json.tool
+```
+
+(Profile dir defaults to `~/.local/share/garmin/<profile>/` on Linux; `garmin auth status` confirms the active profile.) The response gives `zone1Floor`..`zone5Floor` and `maxHeartRateUsed`; zone N spans `zoneNFloor` to `zone(N+1)Floor - 1` (zone 5 runs to max). Pick the zone whose range best contains the stated bpm range — an exact floor match on the low end is a strong signal; if the user's ceiling falls strictly inside a zone (not at a boundary), say so explicitly rather than silently picking a side, and note the discrepancy in the step's `[note]`.
 
 ### Worked example 1: HR-zone repeat workout
 
@@ -117,16 +131,28 @@ garmin workouts create --name "CLI Sample: Z2/3xZ4" \
 
 10 min warmup @Z2, then 3×(4 min @Z4 interval, 3 min @Z3 recovery), then 10 min cooldown @Z1.
 
-### Worked example 2: distance step with a free-text HR/pace note, plus short pickups
+### Worked example 2: HR-zone distance step, plus pace-targeted pickups (every step has a target)
 
 ```bash
 garmin workouts create \
   --name "Suave 6.5km + 4x20s" \
-  --description "Recuperación tras Monza (~40' total)." \
-  --steps "other 6.5km [Suave. Ritmo 5:45/km o más lento, pulso por debajo de 145 (ayer subió a ~150 al final: si hoy sube de 145, frena aunque parezca lentísimo -- así se recupera la pierna tras Monza). ~35-40 min.]; 4x(int 20s [Rápido pero suelto, sin esprintar], rec 1m [Andando o trotando entre cada una])"
+  --description "Recuperación tras Monza (~40' total). Aceleraciones y recuperaciones por ritmo." \
+  --steps "other 6.5km @z2 [Suave, dentro de Z2. Ritmo de referencia 5:45/km o más lento. Ayer el pulso subió a ~150 al final: si hoy te acercas al techo de Z2, frena aunque parezca lentísimo -- así se recupera la pierna tras Monza. ~35-40 min.]; 4x(int 20s @3:10-3:35/km [Rápido pero suelto, sin esprintar], rec 1m @6:30-10:00/km [Andando o trotando entre cada una])"
 ```
 
-A 6.5 km easy run (`other` kind, no HR-zone target — the bpm ceiling and pace guidance live in the `[note]`), followed by 4×(20s fast-but-relaxed pickup, 1 min walk/jog recovery), each with its own `[note]`.
+This evolved from an earlier target-less version (first drafted with no `@z2` on the run and no pace on the pickups/recoveries) once the user clarified they want an explicit objective on *every* step so they don't have to watch the screen: a 6.5 km easy run capped at Z2 (130-149 bpm, chosen because the user's stated 145 bpm ceiling sits almost exactly at the top of their Z2 — see "Mapping a bpm range to a zone"), then 4×(20s pickup at 3:10-3:35/km, 1 min recovery at 6:30-10:00/km), each step still carrying its own `[note]` for on-watch context.
+
+### Worked example 3: zones referenced by number only, no free/target-less steps
+
+```bash
+garmin workouts create \
+  --name "Carrera a la oficina" \
+  --description "Camino al trabajo: 4km a FC Z2 (incluye calentamiento), 1km a ritmo 5:15-5:25/km, enfriamiento Z1 hasta la puerta." \
+  --steps "other 4km @z2 [El primer km hace de calentamiento. Dentro de Z2, tu tope de suave son 145, aunque el reloj no avise hasta 149.]; other 1km @5:15-5:25/km [Ritmo porque el pulso de muñeca llega tarde; deberías acabar en Z3 (150-160), tu zona de media. Con mochila, quédate en la parte lenta del rango.]; cd lap @z1 [Trote o andando hasta la puerta de la oficina.]" \
+  --schedule 2026-10-08
+```
+
+A commute run collapsed to 3 steps, each with a zone or pace target (no separate warmup/cooldown-without-objective steps): 4 km @Z2 (first km doubles as the warmup — called out in the `[note]`, not a separate step), 1 km @5:15-5:25/km, cooldown-by-lap-button @Z1. This replaced a 4-step draft that had used a target-less `wu` and a target-less `cd` — once the user's zones were confirmed live and the "always a target" preference was stated, it collapsed to this shape.
 
 ## Safety
 
