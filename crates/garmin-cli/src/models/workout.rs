@@ -100,6 +100,16 @@ pub struct SportType {
     pub sport_type_key: String,
 }
 
+impl SportType {
+    pub fn running() -> Self {
+        let (id, key) = crate::workout::ids::SPORT_RUNNING;
+        Self {
+            sport_type_id: id,
+            sport_type_key: key.to_string(),
+        }
+    }
+}
+
 /// Step type reference (warmup, cooldown, interval, recovery, rest, repeat, other).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
