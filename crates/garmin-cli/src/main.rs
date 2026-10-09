@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 use garmin_cli::cli::commands;
 
@@ -400,6 +402,34 @@ enum WorkoutCommands {
     },
     /// List workout type enumerations (step/condition/target/sport types)
     Types,
+    /// Create a workout from compact step notation
+    Create {
+        /// Workout name (1-32 characters)
+        #[arg(short, long, required_unless_present = "file")]
+        name: Option<String>,
+        /// Compact step notation, e.g. "wu 10m @z2; 3x(int 4m @z4, rec 3m @z3); cd 10m @z1"
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        steps: Option<String>,
+        /// Raw WorkoutCreate JSON file (escape hatch; --name/--description override its fields)
+        #[arg(long, value_name = "JSON")]
+        file: Option<PathBuf>,
+        /// Workout description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Schedule the created workout to this date
+        #[arg(long, value_name = "YYYY-MM-DD")]
+        schedule: Option<String>,
+        /// Print the Garmin JSON payload and exit without making any network call
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Schedule a workout to a calendar date
+    Schedule {
+        /// Workout ID
+        id: u64,
+        /// Date (YYYY-MM-DD)
+        date: String,
+    },
     /// Delete a workout
     Delete {
         /// Workout ID
@@ -570,6 +600,28 @@ async fn main() -> garmin_cli::Result<()> {
             }
             WorkoutCommands::Get { id } => commands::get_workout(id, cli.profile).await,
             WorkoutCommands::Types => commands::workout_types(cli.profile).await,
+            WorkoutCommands::Create {
+                name,
+                steps,
+                file,
+                description,
+                schedule,
+                dry_run,
+            } => {
+                commands::create_workout(
+                    name,
+                    steps,
+                    file,
+                    description,
+                    schedule,
+                    dry_run,
+                    cli.profile,
+                )
+                .await
+            }
+            WorkoutCommands::Schedule { id, date } => {
+                commands::schedule_workout(id, date, cli.profile).await
+            }
             WorkoutCommands::Delete { id, yes } => {
                 commands::delete_workout(id, yes, cli.profile).await
             }
@@ -610,6 +662,56 @@ mod tests {
     fn accepts_storage_alias_for_sync() {
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--storage", "/tmp"]).is_ok());
         assert!(Cli::try_parse_from(["garmin", "sync", "status", "--db", "/tmp"]).is_ok());
+    }
+
+    #[test]
+    fn workouts_create_accepts_name_and_steps() {
+        assert!(Cli::try_parse_from([
+            "garmin",
+            "workouts",
+            "create",
+            "--name",
+            "Tempo",
+            "--steps",
+            "wu 10m @z2; cd 10m @z1",
+        ])
+        .is_ok());
+    }
+
+    #[test]
+    fn workouts_create_rejects_steps_and_file_together() {
+        assert!(Cli::try_parse_from([
+            "garmin",
+            "workouts",
+            "create",
+            "--name",
+            "Tempo",
+            "--steps",
+            "wu 10m",
+            "--file",
+            "workout.json",
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn workouts_create_rejects_neither_steps_nor_file() {
+        assert!(Cli::try_parse_from(["garmin", "workouts", "create", "--name", "Tempo"]).is_err());
+    }
+
+    #[test]
+    fn workouts_create_file_without_name_is_ok() {
+        assert!(
+            Cli::try_parse_from(["garmin", "workouts", "create", "--file", "workout.json",])
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn workouts_schedule_parse() {
+        assert!(
+            Cli::try_parse_from(["garmin", "workouts", "schedule", "123", "2026-10-02"]).is_ok()
+        );
     }
 
     #[test]
