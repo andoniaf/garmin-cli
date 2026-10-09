@@ -278,6 +278,23 @@ impl GarminClient {
         })
     }
 
+    /// Make an authenticated DELETE request. The response body is ignored.
+    pub async fn delete(&self, token: &OAuth2Token, path: &str) -> Result<()> {
+        let url = self.build_url(path);
+        let headers = self.build_headers(token);
+
+        let response = self
+            .client
+            .delete(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(GarminError::Http)?;
+
+        self.handle_response_status(response).await?;
+        Ok(())
+    }
+
     /// Make an authenticated GET request and return raw bytes (for file downloads)
     pub async fn download(&self, token: &OAuth2Token, path: &str) -> Result<Bytes> {
         let response = self.get(token, path).await?;
@@ -432,6 +449,55 @@ mod tests {
         let message = error.to_string();
         assert!(message.contains("/bad-json"));
         assert!(message.contains("<html>not json</html>"));
+    }
+
+    #[tokio::test]
+    async fn test_delete_204() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .expect("delete should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_delete_200() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .expect("delete should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_delete_404() {
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/workout-service/workout/123"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        let client = GarminClient::new_with_base_url(&server.uri());
+        let err = client
+            .delete(&test_token(), "/workout-service/workout/123")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, GarminError::NotFound(_)));
     }
 
     fn test_token() -> OAuth2Token {
