@@ -142,6 +142,23 @@ garmin activities download 21247810009 --type gpx --output activity.gpx
 garmin activities upload activity.fit
 ```
 
+## Workout Commands
+
+Manage the workouts in your Garmin Connect library.
+
+```bash
+# List / inspect
+garmin workouts list
+garmin workouts get 987654321
+garmin workouts types
+
+# Download as a FIT file
+garmin workouts download 987654321 --output tempo.fit
+
+# Delete (prompts for confirmation unless --yes)
+garmin workouts delete 987654321
+```
+
 ## Device Commands
 
 ```bash
