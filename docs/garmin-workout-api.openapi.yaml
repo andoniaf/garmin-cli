@@ -352,14 +352,16 @@ components:
         workoutTargetTypeId:
           type: integer
           description: |
-            1=no.target, 2=power.zone, 3=cadence.zone,
-            4=heart.rate.zone, 5=speed.zone, 6=pace.zone
+            1=no.target, 2=power.zone, 3=cadence,
+            4=heart.rate.zone, 5=speed.zone, 6=pace.zone.
+            Verified against a live /workout/types response, which lists
+            27 target types; there is no `open` target type.
         workoutTargetTypeKey:
           type: string
           enum:
             - no.target
             - power.zone
-            - cadence.zone
+            - cadence
             - heart.rate.zone
             - speed.zone
             - pace.zone
@@ -420,7 +422,10 @@ components:
         childStepId:
           type: integer
           nullable: true
-          description: "Set to 1 for steps inside a RepeatGroupDTO, null for top-level steps"
+          description: |
+            1-based index of the enclosing RepeatGroupDTO among the workout's
+            repeat groups (first group = 1, second = 2, ...). Steps inside a
+            repeat group carry that group's index; top-level steps are null.
         stepType:
           $ref: "#/components/schemas/StepType"
         description:
@@ -457,14 +462,14 @@ components:
           nullable: true
           description: |
             For pace.zone: faster bound in m/s (higher value).
-            For power.zone/cadence.zone: lower bound.
+            For power.zone/cadence: lower bound.
             For speed.zone: lower bound in m/s.
         targetValueTwo:
           type: number
           nullable: true
           description: |
             For pace.zone: slower bound in m/s (lower value).
-            For power.zone/cadence.zone: upper bound.
+            For power.zone/cadence: upper bound.
             For speed.zone: upper bound in m/s.
         targetValueUnit:
           type: string
@@ -507,6 +512,9 @@ components:
         childStepId:
           type: integer
           nullable: true
+          description: |
+            1-based index of this repeat group among the workout's repeat
+            groups. Every step nested in it carries the same value.
         stepType:
           $ref: "#/components/schemas/StepType"
           description: "Always stepTypeId=6, stepTypeKey=repeat"
@@ -532,7 +540,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ExecutableStepDTO"
-          description: "Steps within the repeat group. Each must have childStepId=1."
+          description: "Steps within the repeat group. Each carries the group's childStepId."
 
     WorkoutStep:
       oneOf:
@@ -696,9 +704,12 @@ components:
         createdDate:
           type: string
           format: date-time
-        updatedDate:
+        updateDate:
           type: string
           format: date-time
+          description: |
+            Named `updateDate` in list responses (the detail endpoint uses
+            `updatedDate`). Verified against a live account.
 
     WorkoutTypeDefinitions:
       type: object
