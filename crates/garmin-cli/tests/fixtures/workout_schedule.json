@@ -1,0 +1,120 @@
+{
+  "workoutScheduleId": 1796139812,
+  "workout": {
+    "workoutId": 1716988795,
+    "ownerId": 11223344,
+    "workoutName": "CLI Sample: Z2/3xZ4",
+    "description": null,
+    "updatedDate": "2026-10-02T20:39:10.0",
+    "createdDate": "2026-10-02T20:39:10.0",
+    "sportType": {
+      "sportTypeId": 1,
+      "sportTypeKey": "running",
+      "displayOrder": 1
+    },
+    "subSportType": null,
+    "trainingPlanId": null,
+    "author": null,
+    "sharedWithUsers": null,
+    "estimatedDurationInSecs": 2460,
+    "estimatedDistanceInMeters": null,
+    "workoutSegments": [
+      {
+        "segmentOrder": 1,
+        "sportType": {
+          "sportTypeId": 1,
+          "sportTypeKey": "running",
+          "displayOrder": 1
+        },
+        "workoutSteps": [
+          {
+            "type": "ExecutableStepDTO",
+            "stepId": 14801860453,
+            "stepOrder": 1,
+            "stepType": { "stepTypeId": 1, "stepTypeKey": "warmup", "displayOrder": 1 },
+            "childStepId": null,
+            "endCondition": { "conditionTypeId": 2, "conditionTypeKey": "time", "displayOrder": 2, "displayable": true },
+            "endConditionValue": 600.0,
+            "preferredEndConditionUnit": null,
+            "targetType": { "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4 },
+            "targetValueOne": null,
+            "targetValueTwo": null,
+            "zoneNumber": 2
+          },
+          {
+            "type": "RepeatGroupDTO",
+            "stepId": 14801860454,
+            "stepOrder": 2,
+            "stepType": { "stepTypeId": 6, "stepTypeKey": "repeat", "displayOrder": 6 },
+            "childStepId": 1,
+            "numberOfIterations": 3,
+            "endConditionValue": 3.0,
+            "endCondition": { "conditionTypeId": 7, "conditionTypeKey": "iterations", "displayOrder": 7, "displayable": false },
+            "skipLastRestStep": false,
+            "smartRepeat": false,
+            "workoutSteps": [
+              {
+                "type": "ExecutableStepDTO",
+                "stepId": 14801860455,
+                "stepOrder": 3,
+                "stepType": { "stepTypeId": 3, "stepTypeKey": "interval", "displayOrder": 3 },
+                "childStepId": 1,
+                "endCondition": { "conditionTypeId": 2, "conditionTypeKey": "time", "displayOrder": 2, "displayable": true },
+                "endConditionValue": 240.0,
+                "preferredEndConditionUnit": null,
+                "targetType": { "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4 },
+                "targetValueOne": null,
+                "targetValueTwo": null,
+                "zoneNumber": 4
+              },
+              {
+                "type": "ExecutableStepDTO",
+                "stepId": 14801860456,
+                "stepOrder": 4,
+                "stepType": { "stepTypeId": 4, "stepTypeKey": "recovery", "displayOrder": 4 },
+                "childStepId": 1,
+                "endCondition": { "conditionTypeId": 2, "conditionTypeKey": "time", "displayOrder": 2, "displayable": true },
+                "endConditionValue": 180.0,
+                "preferredEndConditionUnit": null,
+                "targetType": { "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4 },
+                "targetValueOne": null,
+                "targetValueTwo": null,
+                "zoneNumber": 3
+              }
+            ]
+          },
+          {
+            "type": "ExecutableStepDTO",
+            "stepId": 14801860457,
+            "stepOrder": 5,
+            "stepType": { "stepTypeId": 2, "stepTypeKey": "cooldown", "displayOrder": 2 },
+            "childStepId": null,
+            "endCondition": { "conditionTypeId": 2, "conditionTypeKey": "time", "displayOrder": 2, "displayable": true },
+            "endConditionValue": 600.0,
+            "preferredEndConditionUnit": null,
+            "targetType": { "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4 },
+            "targetValueOne": null,
+            "targetValueTwo": null,
+            "zoneNumber": 1
+          }
+        ]
+      }
+    ],
+    "workoutThumbnailUrl": "https://connect.garmin.com/chart-service/workout?data=md:s1,c2=600000.0,t4=z2;3(s3,c2=240000.0,t4=z4;s4,c2=180000.0,t4=z3;);s2,c2=600000.0,t4=z1;",
+    "shared": false
+  },
+  "calendarDate": "2026-10-04",
+  "createdDate": "2026-10-02",
+  "ownerId": 11223344,
+  "newName": null,
+  "consumer": null,
+  "atpPlanTypeId": null,
+  "associatedActivityId": null,
+  "priority": null,
+  "associatedActivityDateTime": null,
+  "tpType": null,
+  "itp": false,
+  "race": false,
+  "protected": false,
+  "nameChanged": false
+}
