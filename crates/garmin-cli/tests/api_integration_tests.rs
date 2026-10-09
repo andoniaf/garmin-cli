@@ -1523,7 +1523,10 @@ mod activity_note_tests {
 
 mod workout_tests {
     use super::*;
+    use garmin_cli::cli::commands::workouts::{create_workout, schedule_workout};
     use garmin_cli::models::WorkoutSummary;
+    use garmin_cli::workout::{builder, notation};
+    use wiremock::matchers::body_json;
 
     #[tokio::test]
     async fn test_list_workouts_fixture_deserializes() {
@@ -1613,6 +1616,77 @@ mod workout_tests {
             value["workoutTargetTypes"][3]["workoutTargetTypeKey"],
             "heart.rate.zone"
         );
+    }
+
+    #[tokio::test]
+    async fn test_create_workout_sends_exact_body_and_returns_id() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_created.json");
+
+        let items = notation::parse("wu 10m @z2; 3x(int 4m @z4, rec 3m @z3); cd 10m @z1").unwrap();
+        let workout = builder::build_workout("CLI Sample: Z2/3xZ4", None, &items);
+        let expected_body = serde_json::to_value(&workout).unwrap();
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/workout"))
+            .and(body_json(&expected_body))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = create_workout(&client, &token, &expected_body)
+            .await
+            .expect("create should succeed");
+
+        assert_eq!(result["workoutId"], 1716988795);
+        assert_eq!(result["workoutName"], "CLI Sample: Z2/3xZ4");
+    }
+
+    #[tokio::test]
+    async fn test_schedule_workout_with_json_response_fixture() {
+        let mock_server = MockServer::start().await;
+        let fixture = include_str!("fixtures/workout_schedule.json");
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/1716988795"))
+            .and(body_json(serde_json::json!({"date": "2026-10-04"})))
+            .respond_with(ResponseTemplate::new(200).set_body_string(fixture))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = schedule_workout(&client, &token, 1716988795, "2026-10-04")
+            .await
+            .expect("schedule should succeed")
+            .expect("expected a response body");
+
+        assert_eq!(result["workoutScheduleId"], 1796139812);
+        assert_eq!(result["calendarDate"], "2026-10-04");
+    }
+
+    #[tokio::test]
+    async fn test_schedule_workout_with_empty_response() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/workout-service/schedule/1716988795"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&mock_server)
+            .await;
+
+        let client = test_client(&mock_server);
+        let token = test_token();
+
+        let result = schedule_workout(&client, &token, 1716988795, "2026-10-04")
+            .await
+            .expect("schedule should succeed");
+
+        assert!(result.is_none());
     }
 
     #[tokio::test]
