@@ -1,0 +1,14 @@
+{
+  "name": "andoniaf",
+  "description": "andoniaf's Claude Code plugins for garmin-cli",
+  "owner": {
+    "name": "andoniaf"
+  },
+  "plugins": [
+    {
+      "name": "garmin-cli",
+      "source": "./plugins/garmin-cli",
+      "description": "Skill for driving the garmin CLI: Garmin Connect data and running workouts from compact step notation"
+    }
+  ]
+}

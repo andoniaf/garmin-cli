@@ -1,0 +1,9 @@
+{
+  "name": "garmin-cli",
+  "description": "Skill for driving the garmin CLI: Garmin Connect data and running workouts from compact step notation",
+  "author": {
+    "name": "andoniaf"
+  },
+  "repository": "https://github.com/andoniaf/garmin-cli",
+  "license": "MIT"
+}

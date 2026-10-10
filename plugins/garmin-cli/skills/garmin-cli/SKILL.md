@@ -9,7 +9,7 @@ A Rust CLI for the Garmin Connect API. Covers auth, activities, health metrics, 
 
 ## Prerequisites
 
-- Build it: `cargo build --release -p garmin-cli` (binary lands at `target/release/garmin`; debug builds work too, at `target/debug/garmin`). It is not assumed to be on `PATH` — use the full path to the binary unless you've confirmed otherwise.
+- Install it: `cargo install --git https://github.com/andoniaf/garmin-cli --branch main garmin-cli --locked` puts `garmin` in `~/.cargo/bin`. Check with `command -v garmin`; if it's missing and you're inside the repo, `cargo build --release -p garmin-cli` and use the full path `target/release/garmin`. The `workouts` commands are only in this fork, not in upstream releases (Homebrew, crates.io).
 - Authenticate once: `garmin auth login` (prompts for email/password, handles MFA). Check status any time with `garmin auth status`.
 - Multiple Garmin accounts: pass `--profile <name>` on any command, or set `GARMIN_PROFILE=<name>`. Each profile has its own stored credentials.
 - Every subcommand supports `--help` for the exhaustive flag list — this skill covers "how do I accomplish X," not every flag.
